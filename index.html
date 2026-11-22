@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sunkist 香吉士的居家大冒險 - 16-Bit 完整精緻版</title>
+<style>
+  :root {
+    --bg-dark: #1a162b;
+    --ui-border: #ffb347;
+    --ui-bg: #2c223e;
+  }
+  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace, 'Microsoft JhengHei';
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  #game-wrapper {
+    position: relative;
+    border: 4px solid var(--ui-border);
+    border-radius: 10px;
+    box-shadow: 0 0 32px rgba(255, 179, 71, 0.4);
+    background: #000;
+    width: clamp(320px, 70vw, calc(72vh * 16 / 9));
+    max-width: 96vw;
+  }
+  #canvas-container {
+    position: relative;
+    width: 100%;
+  }
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    cursor: crosshair;
+    touch-action: none;
+  }
+  #hud-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--ui-bg);
+    padding: 10px 18px;
+    border-bottom: 3px solid var(--ui-border);
+    font-size: clamp(12px, 1.3vw, 18px);
+    font-weight: bold;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .btn-retro {
+    background: #ff8c1a;
+    color: #1a162b;
+    border: 2px solid #fff;
+    padding: 5px 12px;
+    font-size: clamp(12px, 1.1vw, 15px);
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
+    border-radius: 5px;
+  }
+  .btn-retro:hover { background: #ffc266; }
+
+  /* 開始遊戲與通關互動選單面板 */
+  #overlay-screen {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 14, 36, 0.84);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 16px;
+    z-index: 10;
+  }
+  #overlay-screen.hidden { display: none; }
+  .title-box {
+    background: rgba(44, 34, 62, 0.96);
+    border: 3px solid var(--ui-border);
+    border-radius: 12px;
+    padding: clamp(14px, 2.5vw, 26px) clamp(16px, 3vw, 32px);
+    max-width: 94%;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+  .title-main {
+    color: #ffd700;
+    font-size: clamp(17px, 2.3vw, 28px);
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    text-shadow: 2px 2px 0 #000;
+  }
+  .title-desc {
+    color: #ffe6cc;
+    font-size: clamp(12px, 1.25vw, 16px);
+    line-height: 1.6;
+    margin: 0 0 18px 0;
+  }
+  #overlay-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+  .btn-action-big {
+    background: linear-gradient(180deg, #ff9f1a 0%, #e67e22 100%);
+    color: #1a162b;
+    border: 3px solid #fff;
+    border-radius: 8px;
+    padding: clamp(8px, 1.2vw, 12px) clamp(14px, 2.2vw, 24px);
+    font-size: clamp(14px, 1.5vw, 20px);
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #b35100;
+    transition: transform 0.1s;
+  }
+  .btn-action-big.primary {
+    background: linear-gradient(180deg, #ffe066 0%, #ff9f1a 100%);
+    animation: pulseBtn 1.5s infinite ease-in-out;
+  }
+  .btn-action-big.secondary {
+    background: linear-gradient(180deg, #a8c9bc 0%, #689f8a 100%);
+    box-shadow: 0 4px 0 #3d6656;
+  }
+  .btn-action-big.end-btn {
+    background: linear-gradient(180deg, #e07a5f 0%, #b84a39 100%);
+    color: #fff;
+    box-shadow: 0 4px 0 #7a291d;
+  }
+  .btn-action-big:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #b35100;
+  }
+  @keyframes pulseBtn {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  #controls-hint {
+    margin-top: 10px;
+    font-size: clamp(12px, 1.15vw, 15px);
+    color: #ffd9b3;
+    text-align: center;
+    padding: 0 12px;
+  }
+
+  /* 觸控按鈕 (手機版：左手方向、右手動作) */
+  #touch-controls {
+    display: none;
+    width: 100%;
+    max-width: 960px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 18px;
+    margin-top: 6px;
+  }
+  #touch-controls.stage3-hide {
+    display: none !important;
+  }
+  .dpad, .action-btns { display: flex; gap: 14px; }
+  .t-btn {
+    width: 72px;
+    height: 62px;
+    background: rgba(255, 140, 26, 0.85);
+    border: 3px solid #fff;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 0 rgba(179, 81, 0, 0.9);
+    touch-action: none;
+  }
+  .t-btn.action-btn { width: 86px; font-size: 18px; }
+  .t-btn.jump-btn { background: rgba(255, 102, 51, 0.9); }
+  .t-btn.pressed {
+    background: #ffd166;
+    color: #1a162b;
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(179, 81, 0, 0.9);
+  }
+  @media (max-width: 860px), (pointer: coarse) {
+    #game-wrapper { width: 96vw; }
+    #touch-controls { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <div id="hud-bar">
+    <div>🐱 Sunkist <span id="hp-display">❤️❤️❤️</span></div>
+    <div id="stage-display">關卡: 1/3 客廳大冒險</div>
+    <div id="collect-display">🐟: 0/25 | 🧶: 0/5</div>
+    <div id="metric-display">⏱️: 01:28</div>
+    <div>
+      <button class="btn-retro" id="bgm-btn">🎵 音效: 開</button>
+      <button class="btn-retro" id="reset-btn">🔄 重來</button>
+    </div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+    <!-- 彈出式選單 Overlay -->
+    <div id="overlay-screen">
+      <div class="title-box">
+        <div class="title-main" id="overlay-title">🐱 香吉士 Sunkist 的居家大冒險</div>
+        <div class="title-desc" id="overlay-desc"></div>
+        <div id="overlay-btn-group"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="controls-hint">
+  ⌨️ <b>操作說明</b>：[← / → 或 A / D] 左右移動 ｜ [↓ 或 S] 趴平鑽過低處 ｜ [↑ / W / 空白鍵] 跳躍 ｜ 待機不動會甩尾巴打哈欠！
+</div>
+
+<div id="touch-controls">
+  <div class="dpad">
+    <div class="t-btn" id="btn-left">◀</div>
+    <div class="t-btn" id="btn-right">▶</div>
+  </div>
+  <div class="action-btns">
+    <div class="t-btn action-btn" id="btn-down">▼ 趴下</div>
+    <div class="t-btn action-btn jump-btn" id="btn-jump">▲ 跳躍</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const overlayScreen = document.getElementById('overlay-screen');
+const overlayTitle = document.getElementById('overlay-title');
+const overlayDesc = document.getElementById('overlay-desc');
+const overlayBtnGroup = document.getElementById('overlay-btn-group');
+const touchControls = document.getElementById('touch-controls');
+const controlsHint = document.getElementById('controls-hint');
+
+// === 8-Bit 復古音效合成器 ===
+let audioCtx = null;
+let soundEnabled = true;
+let bgmInterval = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTone(freq, type, duration, vol = 0.08, slide = 0) {
+  if (!soundEnabled || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  if (slide !== 0) {
+    osc.frequency.linearRampToValueAtTime(freq + slide, audioCtx.currentTime + duration);
+  }
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function sfxJump() { playTone(280, 'square', 0.16, 0.07, 240); }
+function sfxSpring() { playTone(220, 'triangle', 0.35, 0.14, 520); }
+function sfxFish() {
+  playTone(587, 'square', 0.08, 0.07);
+  setTimeout(() => playTone(880, 'square', 0.12, 0.07), 70);
+}
+function sfxToy() {
+  [523, 659, 784, 1046].forEach((n, i) => setTimeout(() => playTone(n, 'square', 0.12, 0.08), i * 70));
+}
+function sfxHurt() { playTone(180, 'sawtooth', 0.25, 0.1, -90); }
+function sfxMeow() {
+  playTone(520, 'triangle', 0.12, 0.09, 180);
+  setTimeout(() => playTone(680, 'triangle', 0.22, 0.08, -220), 110);
+}
+function sfxMouseHit() { playTone(700, 'sine', 0.1, 0.06, 300); }
+function sfxPounce() { playTone(260, 'triangle', 0.18, 0.09, 320); }
+function sfxScratch() {
+  playTone(620, 'sawtooth', 0.28, 0.05, -280);
+  setTimeout(() => playTone(480, 'sawtooth', 0.25, 0.04, -200), 70);
+}
+function sfxCatchWand() {
+  playTone(587, 'square', 0.08, 0.08);
+  setTimeout(() => playTone(880, 'square', 0.14, 0.08, 200), 60);
+}
+function sfxMiss() { playTone(190, 'sine', 0.2, 0.07, -60); }
+
+const melody = [
+  330, 392, 440, 392, 523, 494, 440, 392,
+  349, 440, 523, 440, 392, 330, 294, 392
+];
+let noteIdx = 0;
+function startBGM() {
+  if (bgmInterval) clearInterval(bgmInterval);
+  bgmInterval = setInterval(() => {
+    if (!soundEnabled || (gameState !== 'playing')) return;
+    initAudio();
+    const note = melody[noteIdx % melody.length];
+    playTone(note, 'triangle', 0.15, 0.03);
+    if (noteIdx % 2 === 0) playTone(note / 2, 'square', 0.12, 0.015);
+    noteIdx++;
+  }, 210);
+}
+
+document.getElementById('bgm-btn').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  document.getElementById('bgm-btn').textContent = soundEnabled ? '🎵 音效: 開' : '🔇 音效: 關';
+});
+
+// === 動態建立互動選單面板 (支援 <上一關> <重玩> <下一關> <結束>) ===
+function showOverlayMenu(title, descHTML, buttons) {
+  overlayTitle.textContent = title;
+  overlayDesc.innerHTML = descHTML;
+  overlayBtnGroup.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'btn-action-big ' + (b.style || '');
+    btn.textContent = b.label;
+    const handler = e => {
+      e.preventDefault();
+      initAudio();
+      sfxMeow();
+      b.onClick();
+    };
+    btn.addEventListener('click', handler);
+    btn.addEventListener('touchstart', handler, { passive: false });
+    overlayBtnGroup.appendChild(btn);
+  });
+  overlayScreen.classList.remove('hidden');
+}
+
+function showTitleScreen() {
+  gameState = 'start';
+  initStage1(false);
+  showOverlayMenu(
+    '🐱 香吉士 Sunkist 的居家大冒險',
+    '<b>第 1 關</b>：客廳橫向跑酷 (收集小魚乾與玩具、鑽沙發跳毛毯)<br>' +
+    '<b>第 2 關</b>：步步高升登頂賽 (跳上三層喵屋城堡與大衣櫃頂)<br>' +
+    '<b>第 3 關</b>：飛撲狩獵戰 (抓紅雷射留爪痕與攔截逗貓棒)<br>' +
+    '準備好跟香吉士與貝貝一起展開大冒險了嗎？',
+    [
+      { label: '🐾 點擊開始大冒險 (第 1 關)', style: 'primary', onClick: () => initStage1(true) },
+      { label: '🧗 直接玩第 2 關', style: 'secondary', onClick: () => initStage2() },
+      { label: '⚡ 直接玩第 3 關', style: 'secondary', onClick: () => initStage3() }
+    ]
+  );
+}
+
+// 點擊右上角「🔄 重來」時彈出關卡選擇選單
+function showStageSelectModal() {
+  const prevState = gameState;
+  gameState = 'paused';
+  const btns = [
+    {
+      label: `🔄 重玩目前關卡 (第 ${currentStage} 關)`,
+      style: 'primary',
+      onClick: () => {
+        if (currentStage === 1) initStage1(true);
+        else if (currentStage === 2) initStage2();
+        else initStage3();
+      }
+    },
+    { label: '🐾 第 1 關：客廳跑酷', style: 'secondary', onClick: () => initStage1(true) },
+    { label: '🧗 第 2 關：登頂賽', style: 'secondary', onClick: () => initStage2() },
+    { label: '⚡ 第 3 關：飛撲狩獵', style: 'secondary', onClick: () => initStage3() }
+  ];
+  if (prevState === 'playing') {
+    btns.push({
+      label: '▶️ 繼續遊戲',
+      style: 'end-btn',
+      onClick: () => {
+        lastTimerTick = Date.now();
+        gameState = 'playing';
+        overlayScreen.classList.add('hidden');
+      }
+    });
+  }
+  showOverlayMenu(
+    '🎮 關卡選擇與重新開始',
+    '請選擇要重新挑戰目前關卡，或是直接切換到其他關卡：',
+    btns
+  );
+}
+
+// === 核心狀態變數 ===
+let currentStage = 1; // 1: 客廳大冒險, 2: 步步高升登頂賽, 3: 飛撲狩獵戰
+let gameState = 'start';
+const SUNKIST_SCALE = 1.25;
+let timeRemaining = 88;
+let lastTimerTick = Date.now();
+let cameraX = 0;
+let cameraY = 0;
+let frameCount = 0;
+let floatingTexts = [];
+
+// 主角 Sunkist (第1 & 2關使用)
+const sunkist = {
+  x: 80,
+  y: 340,
+  vx: 0,
+  vy: 0,
+  w: 55,
+  h: 50,
+  normalH: 50,
+  crouchH: 24,
+  facing: 1,
+  onGround: false,
+  coyoteTimer: 0,
+  crouching: false,
+  hp: 3,
+  invincibleTimer: 0,
+  idleTimer: 0,
+  standPoseTimer: 0,
+  fishCount: 0,
+  toyCount: 0
+};
+
+let platforms = [];
+let springs = [];
+let collectibles = [];
+let hazards = [];
+let specialProps = [];
+
+// === 第 3 關 (飛撲狩獵戰) 專用狀態 ===
+const S3_GROUND_Y = 385;
+const TOTAL_WAVES = 20;
+const TARGET_SCORE = 15;
+let currentWave = 0;
+let catchCount = 0;
+let nextSpawnTimer = 45;
+let activeTarget = null;
+let clawMarks = [];
+let particles = [];
+
+const huntCat = {
+  x: 400,
+  y: S3_GROUND_Y,
+  startX: 400,
+  startY: S3_GROUND_Y,
+  targetX: 400,
+  targetY: S3_GROUND_Y,
+  landingX: 400,
+  state: 'idle', // 'idle', 'pouncing', 'wall_slide', 'arcing_fall'
+  pose: 'up',    // 'up', 'left', 'right'
+  pounceProgress: 0,
+  pounceSpeed: 0.14,
+  slideTimer: 0,
+  caughtInJump: false,
+  targetTypeInJump: 'laser'
+};
+
+// === Stage 1 初始化：客廳大冒險 ===
+const S1_WORLD_WIDTH = 4400;
+const S1_GROUND_Y = 390;
+
+function initStage1(startNow = true) {
+  currentStage = 1;
+  touchControls.classList.remove('stage3-hide');
+  controlsHint.innerHTML = '⌨️ <b>第 1 關操作說明</b>：[← / → 或 A / D] 左右移動 ｜ [↓ 或 S] 趴平鑽過低處 ｜ [↑ / W / 空白鍵] 跳躍 ｜ 待機不動會甩尾巴打哈欠！';
+
+  timeRemaining = 88;
+  lastTimerTick = Date.now();
+  sunkist.x = 80;
+  sunkist.y = S1_GROUND_Y - sunkist.normalH;
+  sunkist.vx = 0;
+  sunkist.vy = 0;
+  sunkist.h = sunkist.normalH;
+  sunkist.crouching = false;
+  sunkist.hp = 3;
+  sunkist.fishCount = 0;
+  sunkist.toyCount = 0;
+  sunkist.idleTimer = 0;
+  cameraX = 0;
+  cameraY = 0;
+  floatingTexts = [];
+  specialProps = [];
+
+  platforms = [
+    { x: 260, y: 315, w: 120, h: 16, type: 'furniture' },
+    { x: 450, y: 270, w: 220, h: 88, type: 'low_tunnel' },
+    { x: 740, y: 290, w: 95, h: 18, type: 'cart' },
+    { x: 900, y: 230, w: 110, h: 16, type: 'furniture' },
+    { x: 1120, y: 310, w: 110, h: 80, type: 'cabinet' },
+    { x: 1300, y: 250, w: 240, h: 140, type: 'cabinet' },
+    { x: 1460, y: 125, w: 180, h: 16, type: 'furniture' },
+    { x: 1640, y: 270, w: 230, h: 88, type: 'low_tunnel' },
+    { x: 1700, y: 180, w: 140, h: 16, type: 'furniture' },
+    { x: 1940, y: 280, w: 130, h: 18, type: 'cart' },
+    { x: 2180, y: 310, w: 150, h: 80, type: 'cardboard' },
+    { x: 2400, y: 260, w: 110, h: 16, type: 'cat_tree' },
+    { x: 2540, y: 190, w: 120, h: 16, type: 'cat_tree' },
+    { x: 2700, y: 125, w: 150, h: 16, type: 'cat_tree' },
+    { x: 2620, y: 275, w: 240, h: 83, type: 'low_tunnel' },
+    { x: 2950, y: 290, w: 140, h: 100, type: 'cardboard' },
+    { x: 3160, y: 220, w: 140, h: 16, type: 'cat_tree' },
+    { x: 3380, y: 270, w: 200, h: 88, type: 'low_tunnel' },
+    { x: 3650, y: 295, w: 110, h: 18, type: 'cart' },
+    { x: 3830, y: 225, w: 130, h: 16, type: 'furniture' },
+    { x: 4030, y: 280, w: 260, h: 110, type: 'cabinet' }
+  ];
+
+  springs = [
+    { x: 1350, y: 226, w: 95, h: 24, bounceVy: -13.8 },
+    { x: 2980, y: 266, w: 95, h: 24, bounceVy: -13.8 },
+    { x: 3660, y: 271, w: 85, h: 24, bounceVy: -13.2 }
+  ];
+
+  collectibles = [
+    { x: 200, y: 350, type: 'fish', collected: false },
+    { x: 310, y: 275, type: 'fish', collected: false },
+    { x: 500, y: 368, type: 'fish', collected: false },
+    { x: 560, y: 368, type: 'fish', collected: false },
+    { x: 620, y: 368, type: 'toy', name: '毛線球', collected: false },
+    { x: 780, y: 250, type: 'fish', collected: false },
+    { x: 950, y: 190, type: 'fish', collected: false },
+    { x: 1170, y: 270, type: 'fish', collected: false },
+    { x: 1395, y: 150, type: 'fish', collected: false },
+    { x: 1395, y: 95, type: 'fish', collected: false },
+    { x: 1530, y: 85, type: 'toy', name: '逗貓仙女棒', collected: false },
+    { x: 1700, y: 368, type: 'fish', collected: false },
+    { x: 1780, y: 368, type: 'fish', collected: false },
+    { x: 1760, y: 140, type: 'fish', collected: false },
+    { x: 2000, y: 240, type: 'fish', collected: false },
+    { x: 2250, y: 270, type: 'fish', collected: false },
+    { x: 2450, y: 220, type: 'fish', collected: false },
+    { x: 2590, y: 150, type: 'fish', collected: false },
+    { x: 2760, y: 85, type: 'toy', name: '木天蓼小老鼠', collected: false },
+    { x: 2700, y: 368, type: 'fish', collected: false },
+    { x: 2780, y: 368, type: 'fish', collected: false },
+    { x: 3025, y: 140, type: 'fish', collected: false },
+    { x: 3220, y: 180, type: 'toy', name: '發光雷射雷射筆器', collected: false },
+    { x: 3440, y: 368, type: 'fish', collected: false },
+    { x: 3520, y: 368, type: 'fish', collected: false },
+    { x: 3700, y: 230, type: 'fish', collected: false },
+    { x: 3890, y: 185, type: 'toy', name: '貓薄荷抱枕', collected: false },
+    { x: 3960, y: 350, type: 'fish', collected: false },
+    { x: 4080, y: 240, type: 'fish', collected: false },
+    { x: 4130, y: 240, type: 'fish', collected: false },
+    { x: 4210, y: 230, type: 'goal', name: '黃金主食罐罐', collected: false }
+  ];
+
+  hazards = [
+    { x: 800, y: S1_GROUND_Y - 24, minX: 700, maxX: 1050, vx: 1.6, type: 'clippers' },
+    { x: 1450, y: 250 - 24, minX: 1310, maxX: 1520, vx: 1.4, type: 'clippers' },
+    { x: 2220, y: 310 - 24, minX: 2185, maxX: 2310, vx: 1.2, type: 'clippers' },
+    { x: 2900, y: S1_GROUND_Y - 24, minX: 2860, maxX: 3320, vx: 2.2, type: 'clippers' },
+    { x: 3750, y: S1_GROUND_Y - 24, minX: 3600, maxX: 3980, vx: 2.4, type: 'clippers' }
+  ];
+
+  if (startNow) {
+    gameState = 'playing';
+    overlayScreen.classList.add('hidden');
+  }
+  updateHUD();
+}
+
+// === Stage 2 初始化：步步高升登頂賽 ===
+const S2_WORLD_WIDTH = 800;
+const S2_WORLD_HEIGHT = 2150;
+const S2_GROUND_Y = 2050;
+
+function initStage2() {
+  currentStage = 2;
+  touchControls.classList.remove('stage3-hide');
+  controlsHint.innerHTML = '⌨️ <b>第 2 關操作說明</b>：[← / → 或 A / D] 左右移動 ｜ [↑ / W / 空白鍵] 向上跳躍穿過踏板 ｜ 慢慢爬無時間壓力！';
+
+  gameState = 'playing';
+  overlayScreen.classList.add('hidden');
+  sunkist.x = 70;
+  sunkist.y = S2_GROUND_Y - sunkist.normalH;
+  sunkist.vx = 0;
+  sunkist.vy = 0;
+  sunkist.h = sunkist.normalH;
+  sunkist.crouching = false;
+  sunkist.fishCount = 0;
+  sunkist.toyCount = 0;
+  sunkist.hp = 3;
+  cameraX = 0;
+  cameraY = S2_WORLD_HEIGHT - canvas.height;
+  floatingTexts = [];
+  hazards = [];
+
+  platforms = [
+    { x: 50, y: 1980, w: 135, h: 70, type: 's2_sneaker_box' },
+    { x: 170, y: 1915, w: 95, h: 20, type: 's2_stool' },
+
+    // 三層一體成形喵屋城堡踏階 (大象斜坡稍微調矮至 1865，完美露出一樓洞口的貝貝，且與上下層落差僅 50~95px 輕鬆好跳！)
+    { x: 270, y: 1865, w: 240, h: 18, type: 's2_castle_step_1' },
+    { x: 250, y: 1750, w: 280, h: 18, type: 's2_castle_step_2' },
+    { x: 295, y: 1644, w: 190, h: 18, type: 's2_castle_step_3' },
+
+    // 螢幕大紙箱與雙貓跳台叢林
+    { x: 540, y: 1595, w: 150, h: 22, type: 's2_tv_box' },
+    { x: 380, y: 1515, w: 140, h: 20, type: 's2_gray_tree' },
+    { x: 560, y: 1440, w: 150, h: 22, type: 's2_ethnic_tree' },
+    { x: 230, y: 1435, w: 130, h: 20, type: 's2_gray_tree' },
+    { x: 350, y: 1360, w: 140, h: 20, type: 's2_gray_tree' },
+    { x: 520, y: 1280, w: 160, h: 22, type: 's2_ethnic_tree' },
+    { x: 330, y: 1200, w: 150, h: 20, type: 's2_gray_tree' },
+    { x: 150, y: 1120, w: 145, h: 22, type: 's2_ethnic_tree' },
+    { x: 320, y: 1040, w: 150, h: 22, type: 's2_ethnic_tree' },
+
+    // 大衣櫃攻頂階梯
+    { x: 500, y: 960, w: 140, h: 18, type: 'furniture' },
+    { x: 330, y: 880, w: 140, h: 18, type: 'furniture' },
+    { x: 160, y: 800, w: 140, h: 20, type: 's2_drawer' },
+    { x: 60,  y: 720, w: 140, h: 20, type: 's2_drawer' },
+    { x: 180, y: 640, w: 140, h: 20, type: 's2_drawer' },
+    { x: 340, y: 560, w: 150, h: 18, type: 'furniture' },
+    { x: 160, y: 480, w: 150, h: 18, type: 'furniture' },
+    { x: 60,  y: 410, w: 160, h: 20, type: 's2_drawer' },
+    { x: 210, y: 340, w: 450, h: 36, type: 's2_closet_top' }
+  ];
+
+  springs = [
+    { x: 590, y: 1418, w: 90, h: 22, bounceVy: -14.8, type: 'clownfish' }
+  ];
+
+  specialProps = [
+    { x: 405, y: 1220, originX: 405, originY: 1220, length: 50, angle: 0, hit: false }
+  ];
+
+//第二關魚的位置，y的數字愈大，魚在畫面中的位置愈低
+  collectibles = [
+    { x: 115, y: 1968, type: 'fish', collected: false },
+    { x: 215, y: 1900, type: 'fish', collected: false },
+    { x: 390, y: 1780, type: 'fish', collected: false },
+    { x: 270, y: 1710, type: 'fish', collected: false },
+    { x: 390, y: 1600, type: 'fish', collected: false },
+    { x: 615, y: 1560, type: 'fish', collected: false },
+    { x: 450, y: 1480, type: 'fish', collected: false },
+    { x: 635, y: 1350, type: 'fish', collected: false },
+    { x: 600, y: 1245, type: 'fish', collected: false },
+    { x: 405, y: 1165, type: 'fish', collected: false },
+    { x: 220, y: 1085, type: 'fish', collected: false },
+    { x: 570, y: 925,  type: 'fish', collected: false },
+    { x: 130, y: 685,  type: 'fish', collected: false },
+    { x: 415, y: 525,  type: 'fish', collected: false },
+    { x: 140, y: 375,  type: 'fish', collected: false },
+    { x: 450, y: 290, type: 'goal', name: '頂級肉泥罐', collected: false }
+  ];
+
+  updateHUD();
+  addFloatingText('🏰 爬上三層喵屋與大衣櫃頂端吧！貝貝在一樓幫你加油喔～', sunkist.x, sunkist.y - 20, '#ffe066');
+}
+
+// === Stage 3 初始化：飛撲狩獵戰 ===
+function initStage3() {
+  currentStage = 3;
+  gameState = 'playing';
+  overlayScreen.classList.add('hidden');
+  touchControls.classList.add('stage3-hide');
+  controlsHint.innerHTML = '👆 <b>第 3 關操作說明</b>：眼明手快！看到牆上出現 <b>🔴 雷射筆</b> 或半空出現 <b>🪶 逗貓棒</b>，直接用<b>手指或滑鼠點擊目標</b>飛撲抓捕！';
+
+  sunkist.hp = 3;
+  currentWave = 0;
+  catchCount = 0;
+  nextSpawnTimer = 40;
+  activeTarget = null;
+  clawMarks = [];
+  particles = [];
+  floatingTexts = [];
+  cameraX = 0;
+  cameraY = 0;
+
+  huntCat.x = 400;
+  huntCat.y = S3_GROUND_Y;
+  huntCat.state = 'idle';
+  huntCat.pose = 'up';
+
+  updateHUD();
+}
+
+function spawnParticles(x, y, type) {
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.5 + Math.random() * 4;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 1.5,
+      color: type === 'laser' ? '#ff4d4d' : (i % 2 === 0 ? '#ff80bf' : '#80dfff'),
+      size: type === 'laser' ? 4 : 6,
+      life: 28 + Math.random() * 15
+    });
+  }
+}
+
+function spawnNextTarget() {
+  if (currentWave >= TOTAL_WAVES) {
+    finishStage3();
+    return;
+  }
+  currentWave++;
+  updateHUD();
+
+  const isLaser = Math.random() < 0.52;
+  const duration = Math.max(40, Math.round(58 - currentWave * 0.7));
+  const tx = 110 + Math.random() * 580;
+  const ty = 85 + Math.random() * 185;
+
+  activeTarget = {
+    type: isLaser ? 'laser' : 'wand',
+    wandStyle: Math.random() < 0.5 ? 'feather' : 'mouse',
+    x: tx,
+    y: ty,
+    baseX: tx,
+    baseY: ty,
+    timer: duration,
+    maxTimer: duration,
+    caught: false,
+    escaped: false,
+    retreatY: 0
+  };
+}
+
+function handleStage3PointerDown(clientX, clientY) {
+  if (currentStage !== 3 || gameState !== 'playing') return;
+  initAudio();
+
+  const rect = canvas.getBoundingClientRect();
+  const clickX = (clientX - rect.left) * (canvas.width / rect.width);
+  const clickY = (clientY - rect.top) * (canvas.height / rect.height);
+
+  if (huntCat.state === 'idle' || (huntCat.state === 'arcing_fall' && huntCat.y > S3_GROUND_Y - 70) || (huntCat.state === 'wall_slide' && huntCat.slideTimer < 10)) {
+    let destX = Math.max(70, Math.min(730, clickX));
+    let destY = Math.max(65, Math.min(S3_GROUND_Y - 40, clickY));
+    let hitSuccess = false;
+    let jumpTargetType = 'wand';
+
+    if (activeTarget && !activeTarget.caught && !activeTarget.escaped) {
+      const dist = Math.hypot(clickX - activeTarget.x, clickY - activeTarget.y);
+      if (dist <= 65) {
+        hitSuccess = true;
+        destX = activeTarget.x;
+        destY = activeTarget.y;
+        jumpTargetType = activeTarget.type;
+        activeTarget.caught = true;
+      } else {
+        jumpTargetType = activeTarget.type;
+      }
+    }
+
+    const dx = destX - huntCat.x;
+    if (Math.abs(dx) < 85) {
+      huntCat.pose = 'up';
+    } else if (dx < 0) {
+      huntCat.pose = 'left';
+    } else {
+      huntCat.pose = 'right';
+    }
+
+    huntCat.startX = huntCat.x;
+    huntCat.startY = huntCat.y;
+    huntCat.targetX = destX;
+    huntCat.targetY = destY;
+    huntCat.landingX = Math.max(60, Math.min(740, destX + (dx >= 0 ? 55 : -55)));
+    huntCat.pounceProgress = 0;
+
+    // 動態飛撲速度：上半部 50% (destY < 225) 用標準速度 0.14；下半部 50% (destY >= 225) 減慢約 18% 為 0.115，呈現慵懶感！
+    huntCat.pounceSpeed = destY >= 225 ? 0.115 : 0.14;
+
+    huntCat.state = 'pouncing';
+    huntCat.caughtInJump = hitSuccess;
+    huntCat.targetTypeInJump = jumpTargetType;
+    sfxPounce();
+  }
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (currentStage === 3) handleStage3PointerDown(e.clientX, e.clientY);
+});
+canvas.addEventListener('touchstart', e => {
+  if (currentStage === 3 && e.touches.length > 0) {
+    e.preventDefault();
+    handleStage3PointerDown(e.touches[0].clientX, e.touches[0].clientY);
+  }
+}, { passive: false });
+
+function finishStage3() {
+  gameState = 'stage3_end';
+  const passed = catchCount >= TARGET_SCORE;
+  if (passed) {
+    sfxToy();
+    sfxMeow();
+    showOverlayMenu(
+      '🏆 狩獵大師！香吉士抓好抓滿！',
+      `20 回合中成功撲抓了 <b>${catchCount} 次</b>（過關標準：15 次）！<br>牆壁上滿滿都是香吉士努力抓雷射筆留下的光榮爪痕！`,
+      [
+        { label: '◀ 上一關 (第 2 關)', style: 'secondary', onClick: () => initStage2() },
+        { label: '🔄 重玩本關', style: 'secondary', onClick: () => initStage3() },
+        { label: '🏠 結束 (回主畫面)', style: 'primary', onClick: () => showTitleScreen() }
+      ]
+    );
+  } else {
+    sfxMiss();
+    showOverlayMenu(
+      '😿 差一點點！雷射筆跟逗貓棒太狡猾了～',
+      `這次抓到了 <b>${catchCount} / 20 次</b>（過關需要 15 次）。<br>眼明手快再挑戰一次吧！`,
+      [
+        { label: '◀ 上一關 (第 2 關)', style: 'secondary', onClick: () => initStage2() },
+        { label: '🔄 再玩一次本關', style: 'primary', onClick: () => initStage3() },
+        { label: '🏠 結束', style: 'end-btn', onClick: () => showTitleScreen() }
+      ]
+    );
+  }
+}
+
+// === HUD 更新 ===
+function updateHUD() {
+  document.getElementById('hp-display').textContent = '❤️'.repeat(Math.max(0, sunkist.hp)) + '🖤'.repeat(Math.max(0, 3 - sunkist.hp));
+  if (currentStage === 1) {
+    document.getElementById('stage-display').textContent = '關卡: 1/3 客廳大冒險';
+    document.getElementById('collect-display').textContent = `🐟: ${sunkist.fishCount}/25 | 🧶: ${sunkist.toyCount}/5`;
+    const m = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
+    const s = String(timeRemaining % 60).padStart(2, '0');
+    document.getElementById('metric-display').textContent = `⏱️: ${m}:${s}`;
+  } else if (currentStage === 2) {
+    document.getElementById('stage-display').textContent = '關卡: 2/3 步步高升登頂賽';
+    document.getElementById('collect-display').textContent = `🐟: ${sunkist.fishCount}/15`;
+    const climbed = Math.max(0, Math.min(20, Math.round((S2_GROUND_Y - (sunkist.y + sunkist.h)) / (S2_GROUND_Y - 340) * 20)));
+    document.getElementById('metric-display').textContent = `🧗: ${climbed}m / 20m`;
+  } else if (currentStage === 3) {
+    document.getElementById('stage-display').textContent = '關卡: 3/3 飛撲狩獵戰';
+    document.getElementById('collect-display').textContent = `🎯 回合: ${currentWave} / ${TOTAL_WAVES}`;
+    document.getElementById('metric-display').textContent = `🐾 抓到: ${catchCount} / ${TARGET_SCORE}`;
+  }
+}
+
+// === 輸入控制 ===
+const keys = { left: false, right: false, down: false, jump: false };
+window.addEventListener('keydown', e => {
+  initAudio();
+  if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = true;
+  if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = true;
+  if (['ArrowDown', 'KeyS'].includes(e.code)) { keys.down = true; e.preventDefault(); }
+  if (['ArrowUp', 'KeyW', 'Space'].includes(e.code)) { keys.jump = true; e.preventDefault(); }
+});
+window.addEventListener('keyup', e => {
+  if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = false;
+  if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = false;
+  if (['ArrowDown', 'KeyS'].includes(e.code)) keys.down = false;
+  if (['ArrowUp', 'KeyW', 'Space'].includes(e.code)) keys.jump = false;
+});
+
+function bindTouch(id, keyName) {
+  const el = document.getElementById(id);
+  const press = e => {
+    e.preventDefault();
+    initAudio();
+    keys[keyName] = true;
+    el.classList.add('pressed');
+  };
+  const release = e => {
+    e.preventDefault();
+    keys[keyName] = false;
+    el.classList.remove('pressed');
+  };
+  el.addEventListener('touchstart', press, { passive: false });
+  el.addEventListener('touchend', release, { passive: false });
+  el.addEventListener('touchcancel', release, { passive: false });
+  el.addEventListener('mousedown', press);
+  el.addEventListener('mouseup', release);
+  el.addEventListener('mouseleave', release);
+}
+bindTouch('btn-left', 'left');
+bindTouch('btn-right', 'right');
+bindTouch('btn-down', 'down');
+bindTouch('btn-jump', 'jump');
+
+// 點擊右上角「🔄 重來」時，彈出關卡選擇選單
+document.getElementById('reset-btn').addEventListener('click', () => {
+  initAudio();
+  sfxMeow();
+  showStageSelectModal();
+});
+
+function addFloatingText(text, x, y, color = '#fff') {
+  floatingTexts.push({ text, x, y, color, life: 55 });
+}
+
+// === 物理與邏輯更新 ===
+function update() {
+  frameCount++;
+
+  // 更新浮動文字與粒子
+  floatingTexts.forEach(ft => { ft.y -= 0.7; ft.life--; });
+  floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life--; });
+  particles = particles.filter(p => p.life > 0);
+  clawMarks.forEach(cm => { if (cm.alpha > 0.15) cm.alpha -= 0.0012; });
+
+  if (gameState !== 'playing') {
+    sunkist.idleTimer++;
+    return;
+  }
+
+  // === 第 3 關專屬更新邏輯 ===
+  if (currentStage === 3) {
+    if (!activeTarget) {
+      if (huntCat.state === 'idle') {
+        nextSpawnTimer--;
+        if (nextSpawnTimer <= 0) spawnNextTarget();
+      }
+    } else {
+      if (!activeTarget.caught && !activeTarget.escaped) {
+        if (activeTarget.type === 'laser') {
+          activeTarget.x = activeTarget.baseX + Math.sin(frameCount * 0.6) * 5;
+          activeTarget.y = activeTarget.baseY + Math.cos(frameCount * 0.5) * 4;
+        } else {
+          activeTarget.x = activeTarget.baseX + Math.sin(frameCount * 0.22) * 22;
+          activeTarget.y = activeTarget.baseY + Math.abs(Math.cos(frameCount * 0.22)) * 8;
+        }
+
+        activeTarget.timer--;
+        if (activeTarget.timer <= 0) {
+          activeTarget.escaped = true;
+          sfxMiss();
+          addFloatingText('💨 溜走啦！太慢囉～', activeTarget.x - 45, activeTarget.y, '#ff9999');
+          setTimeout(() => {
+            activeTarget = null;
+            nextSpawnTimer = 28;
+          }, 260);
+        }
+      } else if (activeTarget.escaped) {
+        activeTarget.retreatY -= 15;
+      }
+    }
+
+    if (huntCat.state === 'pouncing') {
+      huntCat.pounceProgress += huntCat.pounceSpeed;
+      const t = Math.min(1, huntCat.pounceProgress);
+      const arcLift = Math.sin(t * Math.PI) * 35;
+      huntCat.x = huntCat.startX + (huntCat.targetX - huntCat.startX) * t;
+      huntCat.y = huntCat.startY + (huntCat.targetY - huntCat.startY) * t - arcLift;
+
+      if (t >= 1) {
+        if (huntCat.caughtInJump) {
+          catchCount++;
+          updateHUD();
+          spawnParticles(huntCat.x, huntCat.y, huntCat.targetTypeInJump);
+
+          if (huntCat.targetTypeInJump === 'laser') {
+            sfxScratch();
+            addFloatingText('🐾 抓到雷射筆！', huntCat.x - 40, huntCat.y - 20, '#ff6666');
+            huntCat.state = 'wall_slide';
+            huntCat.slideTimer = 28;
+            clawMarks.push({ x: huntCat.x, startY: huntCat.y - 10, currentH: 5, maxH: 75, alpha: 0.85 });
+          } else {
+            sfxCatchWand();
+            addFloatingText('🪶 空中攔截成功！+1', huntCat.x - 55, huntCat.y - 20, '#66ff99');
+            huntCat.state = 'arcing_fall';
+            huntCat.startX = huntCat.x;
+            huntCat.startY = huntCat.y;
+            huntCat.pounceProgress = 0;
+          }
+          activeTarget = null;
+          nextSpawnTimer = 26;
+        } else {
+          sfxMiss();
+          addFloatingText('😿 撲空了！', huntCat.x - 30, huntCat.y - 15, '#ffcc66');
+          if (huntCat.targetTypeInJump === 'laser') {
+            sfxScratch();
+            huntCat.state = 'wall_slide';
+            huntCat.slideTimer = 20;
+            clawMarks.push({ x: huntCat.x, startY: huntCat.y, currentH: 5, maxH: 50, alpha: 0.7 });
+          } else {
+            huntCat.state = 'arcing_fall';
+            huntCat.startX = huntCat.x;
+            huntCat.startY = huntCat.y;
+            huntCat.pounceProgress = 0;
+          }
+        }
+      }
+    } else if (huntCat.state === 'wall_slide') {
+      huntCat.y += 2.4;
+      huntCat.slideTimer--;
+      const latestMark = clawMarks[clawMarks.length - 1];
+      if (latestMark && latestMark.currentH < latestMark.maxH) latestMark.currentH += 2.4;
+      if (huntCat.y >= S3_GROUND_Y) {
+        huntCat.y = S3_GROUND_Y;
+        huntCat.state = 'idle';
+      } else if (huntCat.slideTimer <= 0) {
+        huntCat.state = 'arcing_fall';
+        huntCat.startX = huntCat.x;
+        huntCat.startY = huntCat.y;
+        huntCat.landingX = Math.max(60, Math.min(740, huntCat.x + 30));
+        huntCat.pounceProgress = 0;
+      }
+    } else if (huntCat.state === 'arcing_fall') {
+      huntCat.pounceProgress += 0.08;
+      const t = Math.min(1, huntCat.pounceProgress);
+      huntCat.x = huntCat.startX + (huntCat.landingX - huntCat.startX) * t;
+      huntCat.y = huntCat.startY + (S3_GROUND_Y - huntCat.startY) * t;
+      if (t >= 1) {
+        huntCat.y = S3_GROUND_Y;
+        huntCat.state = 'idle';
+      }
+    }
+    return;
+  }
+
+  // === 第 1 & 2 關更新邏輯 ===
+  if (currentStage === 1 && Date.now() - lastTimerTick >= 1000) {
+    lastTimerTick = Date.now();
+    timeRemaining = Math.max(0, timeRemaining - 1);
+    updateHUD();
+    if (timeRemaining <= 0) {
+      gameState = 'gameover';
+      sfxHurt();
+      showOverlayMenu(
+        '😿 時間到啦！',
+        '88 秒稍微快了一點點～要再挑戰一次嗎？',
+        [
+          { label: '🔄 重玩第 1 關', style: 'primary', onClick: () => initStage1(true) },
+          { label: '▶ 跳過前往第 2 關', style: 'secondary', onClick: () => initStage2() },
+          { label: '🏠 結束', style: 'end-btn', onClick: () => showTitleScreen() }
+        ]
+      );
+    }
+  }
+
+  // 趴平切換
+  if (keys.down && sunkist.onGround && !sunkist.crouching) {
+    sunkist.y += (sunkist.normalH - sunkist.crouchH);
+    sunkist.h = sunkist.crouchH;
+    sunkist.crouching = true;
+    sunkist.idleTimer = 0;
+  }
+
+  // 水平移動
+  const moveSpeed = sunkist.crouching ? 2.5 : 4.5;
+  if (keys.left) {
+    sunkist.vx = -moveSpeed;
+    sunkist.facing = -1;
+    sunkist.idleTimer = 0;
+  } else if (keys.right) {
+    sunkist.vx = moveSpeed;
+    sunkist.facing = 1;
+    sunkist.idleTimer = 0;
+  } else {
+    sunkist.vx *= 0.75;
+    if (Math.abs(sunkist.vx) < 0.1) sunkist.vx = 0;
+    if (sunkist.onGround && !sunkist.crouching) sunkist.idleTimer++;
+  }
+
+  const prevX = sunkist.x;
+  sunkist.x += sunkist.vx;
+  const worldW = currentStage === 1 ? S1_WORLD_WIDTH : S2_WORLD_WIDTH;
+  sunkist.x = Math.max(8, Math.min(worldW - sunkist.w - 8, sunkist.x));
+
+  if (currentStage === 1) {
+    for (const p of platforms) {
+      if (
+        sunkist.x + sunkist.w > p.x &&
+        sunkist.x < p.x + p.w &&
+        sunkist.y + sunkist.h > p.y + 4 &&
+        sunkist.y < p.y + p.h - 4
+      ) {
+        const prevCenterX = prevX + sunkist.w / 2;
+        const platCenterX = p.x + p.w / 2;
+        if (prevX + sunkist.w <= p.x + 4 || prevCenterX < platCenterX) {
+          sunkist.x = p.x - sunkist.w;
+        } else {
+          sunkist.x = p.x + p.w;
+        }
+        sunkist.vx = 0;
+      }
+    }
+  }
+
+  const standTop = (sunkist.y + sunkist.h) - sunkist.normalH;
+  const canStandUp = currentStage === 2 ? true : !platforms.some(p => (
+    sunkist.x + sunkist.w > p.x &&
+    sunkist.x < p.x + p.w &&
+    standTop < p.y + p.h &&
+    sunkist.y + sunkist.h > p.y + 4
+  ));
+
+  if (!keys.down && sunkist.crouching && canStandUp) {
+    sunkist.y -= (sunkist.normalH - sunkist.crouchH);
+    sunkist.h = sunkist.normalH;
+    sunkist.crouching = false;
+  }
+
+  const canJumpFromGround = sunkist.onGround || sunkist.coyoteTimer > 0;
+  if (keys.jump && canJumpFromGround && (!sunkist.crouching || canStandUp)) {
+    if (sunkist.crouching) {
+      sunkist.y -= (sunkist.normalH - sunkist.crouchH);
+      sunkist.h = sunkist.normalH;
+      sunkist.crouching = false;
+    }
+    sunkist.vy = -11.3;
+    sunkist.onGround = false;
+    sunkist.coyoteTimer = 0;
+    sunkist.idleTimer = 0;
+    sfxJump();
+  }
+
+  const prevBottomY = sunkist.y + sunkist.h;
+  const prevTopY = sunkist.y;
+  sunkist.vy += 0.48;
+  if (sunkist.vy > 12) sunkist.vy = 12;
+  sunkist.y += sunkist.vy;
+  sunkist.onGround = false;
+
+  const curGroundY = currentStage === 1 ? S1_GROUND_Y : S2_GROUND_Y;
+  if (sunkist.y + sunkist.h >= curGroundY) {
+    sunkist.y = curGroundY - sunkist.h;
+    sunkist.vy = 0;
+    sunkist.onGround = true;
+  }
+
+  for (const p of platforms) {
+    if (sunkist.x + sunkist.w - 4 > p.x && sunkist.x + 4 < p.x + p.w) {
+      if (sunkist.vy >= 0 && sunkist.y + sunkist.h >= p.y && prevBottomY <= p.y + 14) {
+        sunkist.y = p.y - sunkist.h;
+        sunkist.vy = 0;
+        sunkist.onGround = true;
+      } else if (currentStage === 1 && sunkist.vy < 0 && sunkist.y <= p.y + p.h && prevTopY >= p.y + p.h - 10) {
+        sunkist.y = p.y + p.h;
+        sunkist.vy = 0;
+      }
+    }
+  }
+
+  if (sunkist.onGround) sunkist.coyoteTimer = 6;
+  else if (sunkist.coyoteTimer > 0) sunkist.coyoteTimer--;
+
+  for (const sp of springs) {
+    if (
+      sunkist.vy >= 0 &&
+      sunkist.x + sunkist.w > sp.x &&
+      sunkist.x < sp.x + sp.w &&
+      sunkist.y + sunkist.h >= sp.y &&
+      sunkist.y + sunkist.h <= sp.y + sp.h + 12
+    ) {
+      sunkist.vy = sp.bounceVy;
+      sunkist.onGround = false;
+      sunkist.coyoteTimer = 0;
+      sfxSpring();
+      const txt = sp.type === 'clownfish' ? '🐠 小丑魚超級衝刺！' : '🐑 小羊毯超彈跳！';
+      addFloatingText(txt, sunkist.x - 10, sunkist.y - 10, '#ffe066');
+    }
+  }
+
+  for (const prop of specialProps) {
+    prop.angle = Math.sin(frameCount * 0.08) * 0.45;
+    const mouseX = prop.originX + Math.sin(prop.angle) * prop.length;
+    const mouseY = prop.originY + Math.cos(prop.angle) * prop.length;
+    if (Math.hypot((sunkist.x + sunkist.w / 2) - mouseX, (sunkist.y + sunkist.h / 2) - mouseY) < 32) {
+      if (!prop.hit) {
+        prop.hit = true;
+        sfxMouseHit();
+        addFloatingText('🐭 拍到小老鼠啦！', mouseX - 20, mouseY - 10, '#ffb3d9');
+        setTimeout(() => { prop.hit = false; }, 900);
+      }
+    }
+  }
+
+  // 收集品與終點罐罐判定
+  for (const item of collectibles) {
+    if (item.collected) continue;
+    const dx = (sunkist.x + sunkist.w / 2) - item.x;
+    const dy = (sunkist.y + sunkist.h / 2) - item.y;
+    if (Math.hypot(dx, dy) < 34) {
+      item.collected = true;
+      if (item.type === 'fish') {
+        sunkist.fishCount++;
+        sfxFish();
+        addFloatingText('+1 🐟', item.x, item.y, '#80dfff');
+      } else if (item.type === 'toy') {
+        sunkist.toyCount++;
+        sunkist.standPoseTimer = 45;
+        sfxToy();
+        addFloatingText(`✨ 找到 ${item.name}！`, item.x - 20, item.y - 10, '#ffb3ff');
+      } else if (item.type === 'goal') {
+        sfxToy();
+        sfxMeow();
+        if (currentStage === 1) {
+          gameState = 'stage1_clear';
+          showOverlayMenu(
+            '🎉 第 1 關完成！客廳大冒險成功！',
+            `共收集 <b>${sunkist.fishCount}/25 條小魚乾</b> 與 <b>${sunkist.toyCount}/5 個玩具</b>！<br>接下來準備挑戰三層喵屋城堡與大衣櫃登頂賽囉！`,
+            [
+              { label: '🔄 重玩第 1 關', style: 'secondary', onClick: () => initStage1(true) },
+              { label: '▶ 下一關 (第 2 關：登頂賽)', style: 'primary', onClick: () => initStage2() },
+              { label: '🏠 結束', style: 'end-btn', onClick: () => showTitleScreen() }
+            ]
+          );
+        } else if (currentStage === 2) {
+          gameState = 'stage2_clear';
+          showOverlayMenu(
+            '🏆 登頂成功！香吉士征服最高衣櫃！',
+            `太棒了！收集了 <b>${sunkist.fishCount}/15 條小魚乾</b> 並登上最高衣櫃頂端！<br>接下來進入第 3 關：紅雷射與逗貓棒飛撲狩獵戰！`,
+            [
+              { label: '◀ 上一關 (第 1 關)', style: 'secondary', onClick: () => initStage1(true) },
+              { label: '🔄 重玩本關', style: 'secondary', onClick: () => initStage2() },
+              { label: '▶ 下一關 (第 3 關：飛撲狩獵戰)', style: 'primary', onClick: () => initStage3() },
+              { label: '🏠 結束', style: 'end-btn', onClick: () => showTitleScreen() }
+            ]
+          );
+        }
+      }
+      updateHUD();
+    }
+  }
+
+  if (sunkist.invincibleTimer > 0) sunkist.invincibleTimer--;
+  if (sunkist.standPoseTimer > 0) sunkist.standPoseTimer--;
+
+  for (const hz of hazards) {
+    hz.x += hz.vx;
+    if (hz.x < hz.minX || hz.x > hz.maxX) hz.vx *= -1;
+    if (
+      sunkist.invincibleTimer === 0 &&
+      sunkist.x + sunkist.w - 8 > hz.x &&
+      sunkist.x + 8 < hz.x + 28 &&
+      sunkist.y + sunkist.h - 4 > hz.y &&
+      sunkist.y + 4 < hz.y + 24
+    ) {
+      sunkist.hp--;
+      sunkist.invincibleTimer = 75;
+      sunkist.vy = -6;
+      sunkist.vx = -sunkist.facing * 5;
+      sfxHurt();
+      addFloatingText('😿 討厭指甲剪！-1❤️', sunkist.x, sunkist.y - 15, '#ff6666');
+      updateHUD();
+      if (sunkist.hp <= 0) {
+        gameState = 'gameover';
+        showOverlayMenu(
+          '😿 被指甲剪嚇跑了...',
+          '別氣餒！要再挑戰一次還是跳到下一關呢？',
+          [
+            { label: '🔄 重新挑戰本關', style: 'primary', onClick: () => initStage1(true) },
+            { label: '▶ 前往第 2 關', style: 'secondary', onClick: () => initStage2() },
+            { label: '🏠 結束', style: 'end-btn', onClick: () => showTitleScreen() }
+          ]
+        );
+      }
+    }
+  }
+
+  if (currentStage === 1) {
+    const targetCamX = sunkist.x - canvas.width * 0.35;
+    cameraX += (targetCamX - cameraX) * 0.12;
+    cameraX = Math.max(0, Math.min(S1_WORLD_WIDTH - canvas.width, cameraX));
+    cameraY = 0;
+  } else if (currentStage === 2) {
+    cameraX = 0;
+    const targetCamY = sunkist.y - canvas.height * 0.55;
+    cameraY += (targetCamY - cameraY) * 0.12;
+    cameraY = Math.max(0, Math.min(S2_WORLD_HEIGHT - canvas.height, cameraY));
+    updateHUD();
+  }
+}
+
+// === 第 1 & 2 關完整精緻渲染繪圖 ===
+function drawBackground() {
+  if (currentStage === 1) {
+    ctx.fillStyle = '#f2e8dc';
+    ctx.fillRect(0, 0, canvas.width, S1_GROUND_Y);
+
+    const curtainX = 1150 - cameraX * 0.85;
+    if (curtainX + 550 > 0 && curtainX < canvas.width) {
+      for (let i = 0; i < 18; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#a8c9bc' : '#94b8a9';
+        ctx.fillRect(curtainX + i * 30, 0, 30, 270);
+      }
+    }
+    const blueCurtainX = 2150 - cameraX * 0.85;
+    if (blueCurtainX + 500 > 0 && blueCurtainX < canvas.width) {
+      for (let i = 0; i < 16; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#1c3b70' : '#152c54';
+        ctx.fillRect(blueCurtainX + i * 30, 0, 30, 260);
+        ctx.fillStyle = '#d9e6ff';
+        ctx.fillRect(blueCurtainX + i * 30 + 12, 40 + (i % 3) * 50, 6, 6);
+      }
+    }
+
+    ctx.fillStyle = '#d8bfb8';
+    ctx.fillRect(0, S1_GROUND_Y, canvas.width, canvas.height - S1_GROUND_Y);
+    ctx.strokeStyle = '#7a6864';
+    ctx.lineWidth = 2;
+    const tileOffset = -(cameraX % 64);
+    for (let x = tileOffset; x < canvas.width; x += 64) {
+      ctx.beginPath();
+      ctx.moveTo(x, S1_GROUND_Y);
+      ctx.lineTo(x - 24, canvas.height);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(0, S1_GROUND_Y);
+    ctx.lineTo(canvas.width, S1_GROUND_Y);
+    ctx.stroke();
+  } else if (currentStage === 2) {
+    ctx.fillStyle = '#f5ede3';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const curTop = 800 - cameraY;
+    if (curTop < canvas.height && curTop + 700 > 0) {
+      for (let i = 0; i < 26; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#1b325f' : '#132342';
+        ctx.fillRect(i * 32, curTop, 32, 680);
+        ctx.fillStyle = '#d9e6ff';
+        ctx.fillRect(i * 32 + 12, curTop + 30 + (i % 4) * 45, 6, 6);
+      }
+    }
+
+    const closetTopY = 340 - cameraY;
+    const closetBottomY = S2_GROUND_Y - cameraY;
+    if (closetBottomY > 0 && closetTopY < canvas.height) {
+      ctx.fillStyle = '#2d1a0e';
+      ctx.fillRect(190, closetTopY + 20, 460, closetBottomY - (closetTopY + 20));
+      ctx.strokeStyle = '#1a0f08';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(205, closetTopY + 35, 210, 500);
+      ctx.strokeRect(425, closetTopY + 35, 210, 500);
+    }
+
+    drawMeowCastle();
+
+    const groundScreenY = S2_GROUND_Y - cameraY;
+    if (groundScreenY < canvas.height) {
+      ctx.fillStyle = '#e8ded8';
+      ctx.fillRect(0, groundScreenY, canvas.width, canvas.height - groundScreenY);
+      ctx.strokeStyle = '#9c8c87';
+      ctx.lineWidth = 2;
+      for (let x = 0; x < canvas.width; x += 70) {
+        ctx.beginPath();
+        ctx.moveTo(x, groundScreenY);
+        ctx.lineTo(x - 30, canvas.height);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(0, groundScreenY);
+      ctx.lineTo(canvas.width, groundScreenY);
+      ctx.stroke();
+    }
+  }
+}
+
+// 專責繪製照片1、2、8的「三層一體成形喵屋瓦楞紙大城堡」(調整大象斜坡比例，讓一樓拱門內的「貝貝」完整露出來！)
+function drawMeowCastle() {
+  const baseY = S2_GROUND_Y - cameraY;
+  if (baseY < -100 || (1640 - cameraY) > canvas.height + 100) return;
+
+  // === 第3層 (最上層)：二樓斜尖頂閣樓 (X: 295~485, Y: 1680~1765) ===
+  const f2X = 295, f2Y = Math.round(1640 - cameraY), f2W = 190, f2H = 120;
+  ctx.fillStyle = '#b8864e';
+  ctx.fillRect(f2X, f2Y, f2W, f2H);
+  ctx.fillStyle = '#ad7b42';
+  for (let x = f2X + 6; x < f2X + f2W; x += 8) ctx.fillRect(x, f2Y, 2, f2H);
+  ctx.fillStyle = '#c8965a';
+  ctx.beginPath();
+  ctx.moveTo(f2X - 14, f2Y + 6);
+  ctx.lineTo(f2X + f2W / 2, f2Y - 26);
+  ctx.lineTo(f2X + f2W + 14, f2Y + 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#8c5d2e';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.fillStyle = '#18120e';
+  ctx.beginPath();
+  ctx.arc(f2X + f2W / 2, f2Y + 68, 26, Math.PI, 0);
+  ctx.rect(f2X + f2W / 2 - 26, f2Y + 68, 52, 41);
+  ctx.fill();
+  ctx.fillStyle = '#7a6248';
+  ctx.beginPath();
+  ctx.arc(f2X + f2W / 2 + 12, f2Y + 66, 5, 0, Math.PI * 2);
+  ctx.fill();
+  drawGreenLogo(f2X + 30, f2Y + 32, 15);
+
+  // === 第2層 (中層)：一樓寬體城堡主屋 (X: 250~530, Y: 1765~2050) ===
+  const f1X = 250, f1Y = Math.round(1750 - cameraY), f1W = 280, f1H = 300;
+  ctx.fillStyle = '#c29058';
+  ctx.fillRect(f1X, f1Y, f1W, f1H);
+  ctx.fillStyle = '#b38048';
+  for (let x = f1X + 6; x < f1X + f1W; x += 8) ctx.fillRect(x, f1Y, 2, f1H);
+  ctx.fillStyle = '#d9b382';
+  ctx.fillRect(f1X - 4, f1Y, f1W + 8, 10);
+  ctx.fillStyle = '#734d26';
+  ctx.fillRect(f1X + 35, f1Y + 13, 45, 10);
+  ctx.fillRect(f1X + 118, f1Y + 13, 45, 10);
+  ctx.fillRect(f1X + 200, f1Y + 13, 45, 10);
+  drawGreenLogo(f1X + 48, f1Y + 46, 17);
+  drawPawWindow(f1X + 42, f1Y + 86);
+  drawPawWindow(f1X + f1W - 42, f1Y + 86);
+
+  // 一樓中央拱門 (往上調至 f1Y + 66，完全不會被下方大象斜坡擋住！)
+  ctx.fillStyle = '#140f0c';
+  ctx.beginPath();
+  ctx.arc(f1X + f1W / 2, f1Y + 78, 38, Math.PI, 0);
+  ctx.rect(f1X + f1W / 2 - 38, f1Y + 78, 76, 36);
+  ctx.fill();
+
+  // 趴在一樓洞口探出頭的「貝貝」(還原照片1：灰虎斑頭頂 + 白臉頰 + 伸出白前爪)
+  const catX = f1X + f1W / 2 - 6;
+  const catY = f1Y + 95;
+  // 貝貝身體與白胸毛
+  ctx.fillStyle = '#dcdcdc';
+  ctx.beginPath();
+  ctx.ellipse(catX + 10, catY + 10, 22, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 貝貝圓頭
+  ctx.fillStyle = '#f5f5f5';
+  ctx.beginPath();
+  ctx.arc(catX, catY, 16, 0, Math.PI * 2);
+  ctx.fill();
+  // 灰虎斑額頭紋與耳朵
+  ctx.fillStyle = '#6e6e6e';
+  ctx.beginPath();
+  ctx.arc(catX, catY - 4, 15, Math.PI, 0);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(catX - 14, catY - 7); ctx.lineTo(catX - 11, catY - 22); ctx.lineTo(catX - 2, catY - 13);
+  ctx.moveTo(catX + 14, catY - 7); ctx.lineTo(catX + 11, catY - 22); ctx.lineTo(catX + 2, catY - 13);
+  ctx.fill();
+  // 貝貝白色倒V鼻樑與伸出的小前掌
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(catX, catY - 8); ctx.lineTo(catX - 8, catY + 6); ctx.lineTo(catX + 8, catY + 6);
+  ctx.fill();
+  ctx.fillRect(catX - 14, catY + 14, 14, 6);
+  // 貝貝大眼睛與粉紅鼻
+  ctx.fillStyle = '#222';
+  ctx.fillRect(catX - 8, catY - 3, 4, 4);
+  ctx.fillRect(catX + 4, catY - 3, 4, 4);
+  ctx.fillStyle = '#ff99aa';
+  ctx.fillRect(catX - 2, catY + 2, 4, 3);
+
+  // === 第1層 (前庭底層)：調矮後的弧形大象耳朵瓦楞紙斜坡 (頂部設在 Y:1865，完美露出一樓拱門與貝貝！) ===
+  const rY = Math.round(1865 - cameraY);
+  const rBottom = Math.round(2065 - cameraY);
+  // 左右兩片大象耳朵護翼
+  ctx.fillStyle = '#caa06a';
+  ctx.strokeStyle = '#8c5d2e';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(282, rY + 36, 30, 42, -0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(498, rY + 36, 30, 42, 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 中央收腰喇叭狀瓦楞紙大斜坡
+  ctx.fillStyle = '#d4a76a';
+  ctx.beginPath();
+  ctx.moveTo(270, rY);
+  ctx.lineTo(510, rY);
+  ctx.quadraticCurveTo(430, rY + 80, 505, rBottom);
+  ctx.lineTo(275, rBottom);
+  ctx.quadraticCurveTo(350, rY + 80, 270, rY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 斜坡橫向密集瓦楞紙紋理
+  ctx.strokeStyle = '#9e703a';
+  ctx.lineWidth = 2;
+  for (let y = rY + 6; y < rBottom - 4; y += 6) {
+    const t = (y - rY) / (rBottom - rY);
+    const halfW = 120 - Math.sin(t * Math.PI) * 52;
+    ctx.beginPath();
+    ctx.moveTo(390 - halfW, y);
+    ctx.lineTo(390 + halfW, y);
+    ctx.stroke();
+  }
+}
+
+function drawGreenLogo(cx, cy, r) {
+  // 1. 綠色圓形外框背景
+  ctx.fillStyle = '#27ae60';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 2. 白色肉球圖案
+  ctx.fillStyle = '#fff';
+
+  // 下方大掌墊 (微扁橢圓形)
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + r * 0.28, r * 0.32, r * 0.24, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 上方三顆獨立小腳趾 (左、中、右拉開間距)
+  const logoToes = [
+    { dx: -r * 0.38, dy: -r * 0.12 }, // 左腳趾
+    { dx: 0,         dy: -r * 0.32}, // 中間腳趾 (位置稍微提高)
+    { dx: r * 0.38,  dy: -r * 0.12 }  // 右腳趾
+  ];
+
+  logoToes.forEach(t => {
+    ctx.beginPath();
+    ctx.arc(cx + t.dx, cy + t.dy, r * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawPawWindow(cx, cy) {
+  ctx.fillStyle = '#140f0c';
+
+  // 1. 下方大腳掌 (用微扁的橢圓形，比正圓形更像真實貓肉球掌墊！)
+  ctx.beginPath();
+  // 參數依序為：(中心X, 中心Y, 水平半徑12, 垂直半徑9, 旋轉0, 起始角0, 結束角2π)
+  ctx.ellipse(cx, cy + 9, 12, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 2. 上方三個小圓圈腳趾 (左、中、右完全獨立繪製，拉開間距不沾黏)
+  const toes = [
+    { dx: -13, dy: -5 }, // 左腳趾
+    { dx: 0,   dy: -9 }, // 中間腳趾 (稍微高一點點呈現漂亮弧度)
+    { dx: 13,  dy: -5 }  // 右腳趾
+  ];
+
+  toes.forEach(toe => {
+    ctx.beginPath();
+    // 最後一個參數 5.5 是小腳趾圓圈的大小(半徑)，想更大或更小可微調此數字
+    ctx.arc(cx + toe.dx, cy + toe.dy, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawPlatforms() {
+  for (const p of platforms) {
+    if (p.type.startsWith('s2_castle_step')) {
+      const sx = Math.round(p.x - cameraX);
+      const sy = Math.round(p.y - cameraY);
+      ctx.fillStyle = 'rgba(255, 235, 179, 0.35)';
+      ctx.fillRect(sx, sy, p.w, 5);
+      continue;
+    }
+
+    const sx = Math.round(p.x - cameraX);
+    const sy = Math.round(p.y - cameraY);
+    const visualH = p.type === 's2_tv_box' ? Math.round(S2_GROUND_Y - p.y) : (p.type === 's2_stool' ? 150 : p.h);
+    if (sx + p.w < -60 || sx > canvas.width + 60 || sy + visualH < -80 || sy > canvas.height + 80) continue;
+
+    if (p.type === 'cart') {
+      ctx.fillStyle = '#4fb3bf';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.strokeStyle = '#2b7a85';
+      ctx.strokeRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#4fb3bf';
+      ctx.fillRect(sx + 8, sy + p.h, 6, S1_GROUND_Y - (p.y + p.h) - 10);
+      ctx.fillRect(sx + p.w - 14, sy + p.h, 6, S1_GROUND_Y - (p.y + p.h) - 10);
+      ctx.fillStyle = '#222';
+      ctx.beginPath();
+      ctx.arc(sx + 11, S1_GROUND_Y - 6, 6, 0, Math.PI * 2);
+      ctx.arc(sx + p.w - 11, S1_GROUND_Y - 6, 6, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.type === 'cabinet') {
+      ctx.fillStyle = '#ece6d8';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#b8a97e';
+      ctx.fillRect(sx, sy + 4, p.w, 6);
+      ctx.strokeStyle = '#8c7d56';
+      ctx.strokeRect(sx + 6, sy + 16, p.w - 12, p.h - 22);
+    } else if (p.type === 'cat_tree') {
+      ctx.fillStyle = '#c49a6c';
+      ctx.fillRect(sx + p.w / 2 - 12, sy + p.h, 24, S1_GROUND_Y - (p.y + p.h));
+      ctx.fillStyle = '#3b6e75';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#d9e2dc';
+      for (let i = 0; i < p.w; i += 16) ctx.fillRect(sx + i, sy + 4, 8, 8);
+    } else if (p.type === 'cardboard') {
+      ctx.fillStyle = '#c8965a';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#9c6f38';
+      for (let i = 0; i < p.w; i += 24) ctx.fillRect(sx + i, sy - 8, 14, 8);
+    } else if (p.type === 'low_tunnel') {
+      ctx.fillStyle = '#6e4e37';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#8c6548';
+      ctx.fillRect(sx + 4, sy + 4, p.w - 8, p.h - 12);
+    } else if (p.type === 's2_sneaker_box') {
+      ctx.fillStyle = '#1e5fad';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(sx + 20 + i * 14, sy);
+        ctx.lineTo(sx + 35 + i * 14, sy);
+        ctx.lineTo(sx + 15 + i * 14, sy + p.h);
+        ctx.lineTo(sx + i * 14, sy + p.h);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(sx + p.w - 38, sy + p.h - 24, 30, 18);
+      ctx.fillStyle = '#333';
+      ctx.fillRect(sx + p.w - 34, sy + p.h - 20, 22, 3);
+    } else if (p.type === 's2_stool') {
+      ctx.fillStyle = '#222';
+      ctx.beginPath();
+      ctx.ellipse(sx + p.w / 2, sy + 7, p.w / 2, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(sx + 12, sy + 10); ctx.lineTo(sx + 6, sy + 135);
+      ctx.moveTo(sx + p.w - 12, sy + 10); ctx.lineTo(sx + p.w - 6, sy + 135);
+      ctx.stroke();
+    } else if (p.type === 's2_tv_box') {
+      const boxH = Math.round(S2_GROUND_Y - p.y);
+      ctx.fillStyle = '#d97d26';
+      ctx.fillRect(sx, sy, p.w, boxH);
+      ctx.fillStyle = '#2b3d4f';
+      ctx.fillRect(sx + 6, sy + 75, p.w - 12, boxH - 82);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(sx + 16, sy + 22, 42, 22);
+      ctx.strokeStyle = '#a85a12';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx, sy, p.w, boxH);
+    } else if (p.type === 's2_gray_tree') {
+      ctx.fillStyle = '#7f8c8d';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#95a5a6';
+      ctx.fillRect(sx + 2, sy + 2, p.w - 4, 5);
+      ctx.fillStyle = '#bdc3c7';
+      ctx.fillRect(sx + p.w / 2 - 10, sy + p.h, 20, 75);
+    } else if (p.type === 's2_ethnic_tree') {
+      ctx.fillStyle = '#d7ccc8';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#bcaaa4';
+      ctx.fillRect(sx + p.w - 28, sy + p.h, 20, 75);
+      for (let r = sy + p.h; r < sy + p.h + 75; r += 6) {
+        ctx.fillStyle = '#8d6e63';
+        ctx.fillRect(sx + p.w - 28, r, 20, 2);
+      }
+      ctx.fillStyle = '#2e7d32';
+      for (let i = 0; i < p.w; i += 12) {
+        ctx.fillRect(sx + i, sy + p.h - 6, 6, 4);
+      }
+    } else if (p.type === 's2_drawer') {
+      ctx.fillStyle = '#4a2f1b';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#6b4629';
+      ctx.fillRect(sx + 4, sy + 3, p.w - 8, p.h - 6);
+      ctx.fillStyle = '#c0c0c0';
+      ctx.fillRect(sx + p.w / 2 - 14, sy + p.h / 2 - 2, 28, 4);
+    } else if (p.type === 's2_closet_top') {
+      ctx.fillStyle = '#4e2d18';
+      ctx.fillRect(sx, sy, p.w, p.h);
+      ctx.fillStyle = '#704225';
+      ctx.fillRect(sx + 4, sy + 4, p.w - 8, 8);
+    } else {
+      ctx.fillStyle = '#8b5a2b';
+      ctx.fillRect(sx, sy, p.w, p.h);
+    }
+  }
+
+  // 完整繪製小丑魚抱枕與小羊毛毯彈跳床
+  for (const sp of springs) {
+    const sx = Math.round(sp.x - cameraX);
+    const sy = Math.round(sp.y - cameraY);
+    if (sp.type === 'clownfish') {
+      ctx.fillStyle = '#e65100';
+      ctx.beginPath();
+      ctx.ellipse(sx + sp.w / 2, sy + 10, sp.w * 0.45, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(sx + sp.w * 0.35, sy + 1, 8, 18);
+      ctx.fillRect(sx + sp.w * 0.65, sy + 2, 6, 16);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(sx + sp.w * 0.8, sy + 7, 3, 3);
+    } else {
+      ctx.fillStyle = '#f2b705';
+      ctx.fillRect(sx, sy + 10, sp.w, 14);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(sx + 10, sy + 13, 12, 8);
+      ctx.fillRect(sx + 42, sy + 13, 12, 8);
+      ctx.fillRect(sx + 70, sy + 13, 12, 8);
+      ctx.fillStyle = '#c48854';
+      ctx.beginPath();
+      ctx.ellipse(sx + sp.w / 2, sy + 8, sp.w * 0.4, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 第1關貓跳台上的「貝貝 NPC」
+  if (currentStage === 1) {
+    const npcX = Math.round(2790 - cameraX);
+    if (npcX > -50 && npcX < canvas.width + 50) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(npcX, 95, 26, 30);
+      ctx.fillStyle = '#555555';
+      ctx.fillRect(npcX + 2, 95, 12, 14);
+      ctx.fillStyle = '#d98c4a';
+      ctx.fillRect(npcX + 14, 102, 10, 12);
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(npcX - 45, 62, 160, 26);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText('😺貝貝: 罐罐在前面!', npcX - 40, 77);
+    }
+  }
+
+  // 第2關懸掛搖擺小老鼠 (升級為與第3關一致的立體灰白小老鼠造型！)
+  for (const prop of specialProps) {
+    const originSx = prop.originX - cameraX;
+    const originSy = prop.originY - cameraY;
+    const mouseSx = originSx + Math.sin(prop.angle) * prop.length;
+    const mouseSy = originSy + Math.cos(prop.angle) * prop.length;
+
+    ctx.strokeStyle = '#ff7043';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(originSx, originSy);
+    ctx.lineTo(mouseSx, mouseSy);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(mouseSx, mouseSy);
+    ctx.rotate(prop.angle * 0.6);
+    // 灰白絨毛小老鼠身體
+    ctx.fillStyle = '#e0e0e0';
+    ctx.beginPath();
+    ctx.ellipse(0, 4, 12, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 粉紅大圓耳
+    ctx.fillStyle = '#ff99bb';
+    ctx.beginPath();
+    ctx.arc(-8, -5, 5, 0, Math.PI * 2);
+    ctx.arc(8, -5, 5, 0, Math.PI * 2);
+    ctx.fill();
+    // 黑眼睛與粉紅鼻頭
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-4, 2, 2.5, 2.5);
+    ctx.fillRect(2, 2, 2.5, 2.5);
+    ctx.fillStyle = '#ff6699';
+    ctx.beginPath();
+    ctx.arc(0, 9, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// 繪製第1、2關的香吉士 Sunkist
+function drawSunkist() {
+  if (sunkist.invincibleTimer > 0 && Math.floor(frameCount / 3) % 2 === 0) return;
+
+  const screenX = Math.round(sunkist.x - cameraX);
+  const screenY = Math.round(sunkist.y - cameraY);
+  const baseH = sunkist.crouching ? 20 : 40;
+
+  ctx.save();
+  ctx.translate(screenX + sunkist.w / 2, screenY + sunkist.h);
+
+  if (gameState === 'stage2_clear') {
+    ctx.scale(SUNKIST_SCALE, SUNKIST_SCALE);
+    ctx.translate(-22, -20);
+    ctx.fillStyle = '#e67e22';
+    ctx.fillRect(0, 4, 46, 16);
+    ctx.fillStyle = '#f7c6c7';
+    ctx.fillRect(8, 8, 28, 10);
+    ctx.fillStyle = '#fff5e6';
+    ctx.fillRect(36, 18, 8, 10);
+    ctx.fillStyle = '#4a3525';
+    ctx.fillRect(36, 6, 6, 2);
+    ctx.fillStyle = '#ff99bb';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText('zZz...', 36, -4);
+    ctx.restore();
+    return;
+  }
+
+  ctx.scale(sunkist.facing * SUNKIST_SCALE, SUNKIST_SCALE);
+  ctx.translate(-22, -baseH);
+
+  const sx = 0;
+  const sy = 0;
+  const orangeMain = '#e67e22';
+  const orangeStripe = '#b35100';
+  const whiteFur = '#fff5e6';
+  const pinkBelly = '#f7c6c7';
+
+  if (sunkist.crouching) {
+    const crouchTailWag = Math.sin(frameCount * 0.12) * 2.5;
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(sx - 4, sy + 4, 50, 13);
+    ctx.fillStyle = pinkBelly;
+    ctx.fillRect(sx + 10, sy + 14, 22, 4);
+    ctx.fillStyle = orangeStripe;
+    for (let i = 4; i < 36; i += 8) ctx.fillRect(sx + i, sy + 4, 4, 9);
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(sx + 40, sy + 13, 10, 6);
+    ctx.fillRect(sx - 8, sy + 13, 9, 6);
+    ctx.fillRect(sx - 8, sy + 2, 6, 6);
+    ctx.fillRect(sx - 9 + crouchTailWag, sy - 3, 6, 6);
+    ctx.fillStyle = whiteFur;
+    ctx.fillRect(sx + 38, sy + 10, 9, 5);
+    ctx.fillStyle = '#99cc33';
+    ctx.fillRect(sx + 39, sy + 6, 4, 4);
+  } else if (sunkist.standPoseTimer > 0 || !sunkist.onGround) {
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(sx + 10, sy + 8, 24, 32);
+    ctx.fillStyle = orangeStripe;
+    ctx.fillRect(sx + 12, sy + 18, 20, 3);
+    ctx.fillRect(sx + 14, sy + 24, 16, 3);
+    ctx.fillStyle = whiteFur;
+    ctx.fillRect(sx + 30, sy + 20, 8, 7);
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(sx + 10, sy - 4, 24, 16);
+    ctx.fillRect(sx + 10, sy - 10, 6, 6);
+    ctx.fillRect(sx + 28, sy - 10, 6, 6);
+    ctx.fillStyle = whiteFur;
+    ctx.fillRect(sx + 16, sy + 6, 16, 6);
+    ctx.fillStyle = '#e06666';
+    ctx.fillRect(sx + 26, sy + 3, 4, 3);
+    ctx.fillStyle = '#b3d944';
+    ctx.fillRect(sx + 22, sy - 1, 6, 5);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(sx + 24, sy, 3, 4);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(sx + 28, sy + 7); ctx.lineTo(sx + 46, sy + 4);
+    ctx.moveTo(sx + 28, sy + 9); ctx.lineTo(sx + 45, sy + 11);
+    ctx.stroke();
+  } else {
+    const isMoving = Math.abs(sunkist.vx) > 0.2;
+    const legOffset = isMoving ? Math.sin(frameCount * 0.35) * 4 : 0;
+    const tailAngle = frameCount * (isMoving ? 0.25 : 0.12);
+    const tailWag = Math.sin(tailAngle) * (isMoving ? 2.2 : 4.5);
+    const tailBob = Math.abs(Math.cos(tailAngle)) * 1.5;
+
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(sx + 3, sy + 6, 7, 8);
+    ctx.fillRect(sx + 2 + tailWag * 0.35, sy - 1 + tailBob * 0.5, 7, 8);
+    ctx.fillRect(sx + 1 + tailWag * 0.75, sy - 8 + tailBob, 7, 8);
+    ctx.fillRect(sx - 3 + tailWag * 1.15, sy - 12 + tailBob, 9, 5);
+
+    ctx.fillStyle = orangeStripe;
+    ctx.fillRect(sx + 2 + tailWag * 0.35, sy + 2 + tailBob * 0.5, 7, 3);
+    ctx.fillRect(sx + 1 + tailWag * 0.75, sy - 5 + tailBob, 7, 3);
+
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(sx + 6, sy + 10, 30, 20);
+    ctx.fillStyle = orangeStripe;
+    for (let i = 10; i < 32; i += 7) ctx.fillRect(sx + i, sy + 11, 4, 14);
+
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(sx + 8 + legOffset, sy + 30, 6, 10);
+    ctx.fillRect(sx + 28 - legOffset, sy + 30, 6, 10);
+
+    const idleCycle = sunkist.idleTimer % 280;
+    const isYawning = sunkist.idleTimer >= 150 && idleCycle >= 150 && idleCycle <= 225;
+    const headY = isYawning ? sy - 1 : sy;
+
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(sx + 24, headY, 20, 18);
+    ctx.fillRect(sx + 25, headY - 6, 6, 6);
+    ctx.fillRect(sx + 37, headY - 6, 6, 6);
+
+    if (isYawning) {
+      const yawnProgress = idleCycle - 150;
+      const mouthOpenH = (yawnProgress < 12 || yawnProgress > 63) ? 6 : 11;
+      const mouthY = headY + 6 + (11 - mouthOpenH) / 2;
+      ctx.fillStyle = '#4a3525';
+      ctx.fillRect(sx + 33, headY + 3, 6, 2);
+      ctx.fillStyle = '#d9534f';
+      ctx.fillRect(sx + 33, mouthY, 12, mouthOpenH);
+      if (mouthOpenH > 8) {
+        ctx.fillStyle = '#ff9999';
+        ctx.fillRect(sx + 35, mouthY + 6, 8, 4);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(sx + 42, mouthY, 2, 3);
+        ctx.fillRect(sx + 42, mouthY + mouthOpenH - 3, 2, 3);
+      }
+      if (idleCycle === 152 && gameState === 'playing') {
+        addFloatingText('🥱 哈～欠～', sunkist.x, sunkist.y - 12, '#ffd9b3');
+      }
+    } else {
+      const isBlinking = (idleCycle > 75 && idleCycle < 82);
+      ctx.fillStyle = whiteFur;
+      ctx.fillRect(sx + 32, sy + 12, 12, 6);
+      if (isBlinking) {
+        ctx.fillStyle = '#4a3525';
+        ctx.fillRect(sx + 34, sy + 7, 6, 2);
+      } else {
+        ctx.fillStyle = '#a8d13b';
+        ctx.fillRect(sx + 34, sy + 4, 6, 6);
+        ctx.fillStyle = '#111';
+        ctx.fillRect(sx + 37, sy + 5, 3, 4);
+      }
+      ctx.fillStyle = '#e06666';
+      ctx.fillRect(sx + 42, sy + 9, 3, 3);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(sx + 38, sy + 14); ctx.lineTo(sx + 53, sy + 12);
+      ctx.moveTo(sx + 38, sy + 16); ctx.lineTo(sx + 52, sy + 19);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawItemsAndHazards() {
+  for (const item of collectibles) {
+    if (item.collected) continue;
+    const sx = Math.round(item.x - cameraX);
+    const sy = Math.round(item.y - cameraY);
+    const bob = Math.sin(frameCount * 0.1 + item.x) * 3;
+
+    if (item.type === 'fish') {
+      ctx.fillStyle = '#5bc0de';
+      ctx.beginPath();
+      ctx.ellipse(sx, sy + bob, 10, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(sx - 14, sy + bob - 4, 6, 8);
+    } else if (item.type === 'toy') {
+      ctx.fillStyle = '#ff66b3';
+      ctx.beginPath();
+      ctx.arc(sx, sy + bob, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.stroke();
+    } else if (item.type === 'goal') {
+      // 黃金主食罐本體
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(sx - 18, sy + bob - 14, 36, 26);
+      ctx.fillStyle = '#b38600';
+      ctx.fillRect(sx - 18, sy + bob - 6, 36, 10);
+      // 高對比深琥珀咖啡底板 + 黃金外框 + 亮黃字體，在淺米白牆面前超清晰！
+      ctx.fillStyle = 'rgba(61, 30, 5, 0.9)';
+      ctx.fillRect(sx - 45, sy + bob - 36, 90, 19);
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(sx - 62, sy + bob - 38, 110, 24);
+      ctx.fillStyle = '#ffea79';
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText('🥫黃金主食罐', sx - 60, sy + bob - 22);
+    }
+  }
+
+  for (const hz of hazards) {
+    const sx = Math.round(hz.x - cameraX);
+    const sy = Math.round(hz.y - cameraY);
+    const snip = Math.sin(frameCount * 0.25) * 4;
+    ctx.fillStyle = '#8e44ad';
+    ctx.fillRect(sx, sy + 4, 18, 7);
+    ctx.fillStyle = '#f1c40f';
+    ctx.fillRect(sx, sy + 13, 18, 7);
+    ctx.fillStyle = '#bdc3c7';
+    ctx.fillRect(sx + 18, sy + 4 + snip * 0.5, 10, 5);
+    ctx.fillRect(sx + 18, sy + 13 - snip * 0.5, 10, 5);
+  }
+
+  for (const ft of floatingTexts) {
+    ctx.fillStyle = ft.color;
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText(ft.text, ft.x - cameraX, ft.y - cameraY);
+  }
+}
+
+// === 第 3 關專屬渲染：飛撲狩獵戰 (含長白鬍鬚與牆面抓痕) ===
+function drawStage3() {
+  // 房間背景
+  ctx.fillStyle = '#f4ece1';
+  ctx.fillRect(0, 0, canvas.width, S3_GROUND_Y);
+  ctx.fillStyle = '#ebdecb';
+  for (let x = 40; x < canvas.width; x += 80) ctx.fillRect(x, 0, 2, S3_GROUND_Y - 18);
+  ctx.fillStyle = '#8c6239';
+  ctx.fillRect(0, S3_GROUND_Y - 18, canvas.width, 18);
+
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = i % 2 === 0 ? '#1b325f' : '#132342';
+    ctx.fillRect(i * 22, 0, 22, 260);
+    ctx.fillRect(canvas.width - (i + 1) * 22, 0, 22, 260);
+  }
+
+  ctx.fillStyle = '#d8bfb8';
+  ctx.fillRect(0, S3_GROUND_Y, canvas.width, canvas.height - S3_GROUND_Y);
+  ctx.strokeStyle = '#7a6864';
+  ctx.lineWidth = 2;
+  for (let x = 0; x < canvas.width; x += 70) {
+    ctx.beginPath(); ctx.moveTo(x, S3_GROUND_Y); ctx.lineTo(x - 25, canvas.height); ctx.stroke();
+  }
+
+  // 牆上爪痕
+  for (const cm of clawMarks) {
+    ctx.save();
+    ctx.globalAlpha = cm.alpha;
+    ctx.strokeStyle = '#6e5239';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    [-18, -13, -8, -3, 6, 11, 16, 21].forEach((offsetX, idx) => {
+      ctx.beginPath();
+      const topY = cm.startY + (idx % 2) * 4;
+      ctx.moveTo(cm.x + offsetX, topY);
+      ctx.lineTo(cm.x + offsetX + Math.sin(topY) * 2, topY + cm.currentH);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // 目標物：雷射筆或逗貓棒
+  if (activeTarget) {
+    const t = activeTarget;
+    const ty = t.y + t.retreatY;
+
+    if (t.type === 'laser') {
+      if (!t.escaped) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 30, 30, 0.22)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width - 20, 20);
+        ctx.lineTo(t.x, ty);
+        ctx.stroke();
+
+        const pulse = 12 + Math.sin(frameCount * 0.8) * 4;
+        const grad = ctx.createRadialGradient(t.x, ty, 2, t.x, ty, pulse);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.35, '#ff1a1a');
+        grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(t.x, ty, pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        const ratio = Math.max(0, t.timer / t.maxTimer);
+        ctx.strokeStyle = 'rgba(255, 80, 80, 0.65)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(t.x, ty, 16 + ratio * 18, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else {
+      const rodX = t.baseX + Math.sin(frameCount * 0.15) * 10;
+      ctx.save();
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(rodX, 0);
+      ctx.quadraticCurveTo((rodX + t.x) / 2, ty * 0.5, t.x, ty);
+      ctx.stroke();
+
+      ctx.translate(t.x, ty);
+      const swingAngle = Math.sin(frameCount * 0.25) * 0.35;
+      ctx.rotate(swingAngle);
+
+      if (t.wandStyle === 'feather') {
+        ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(0, -10, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ff66b3'; ctx.beginPath(); ctx.ellipse(-8, 6, 7, 18, 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#4dd2ff'; ctx.beginPath(); ctx.ellipse(8, 6, 7, 18, -0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.ellipse(0, 10, 6, 20, 0, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = '#e0e0e0'; ctx.beginPath(); ctx.ellipse(0, 4, 14, 18, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ff99bb'; ctx.beginPath(); ctx.arc(-9, -6, 6, 0, Math.PI * 2); ctx.arc(9, -6, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111'; ctx.fillRect(-5, 2, 3, 3); ctx.fillRect(3, 2, 3, 3);
+        ctx.fillStyle = '#ff6699'; ctx.beginPath(); ctx.arc(0, 10, 4, 0, Math.PI * 2); ctx.fill();
+      }
+
+      if (!t.escaped) {
+        const ratio = Math.max(0, t.timer / t.maxTimer);
+        ctx.strokeStyle = 'rgba(255, 190, 50, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 4, 22 + ratio * 18, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  // 繪製第3關飛撲香吉士 (含招牌長白鬍鬚)
+  drawHuntCat();
+
+  // 粒子與浮動文字
+  for (const p of particles) {
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+  }
+  for (const ft of floatingTexts) {
+    ctx.fillStyle = ft.color;
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText(ft.text, ft.x, ft.y);
+  }
+}
+
+function drawHuntCat() {
+  ctx.save();
+  ctx.translate(Math.round(huntCat.x), Math.round(huntCat.y));
+  const SCALE = 1.35;
+  ctx.scale(SCALE, SCALE);
+
+  const orangeMain = '#e67e22', orangeStripe = '#b35100', whiteFur = '#fff5e6', pinkBelly = '#f7c6c7';
+
+  function drawWhiskers(wx, wy, dir = 1) {
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(wx, wy); ctx.lineTo(wx + dir * 18, wy - 3);
+    ctx.moveTo(wx, wy + 2); ctx.lineTo(wx + dir * 17, wy + 4);
+    ctx.stroke();
+  }
+
+  if (huntCat.state === 'idle') {
+    const wiggle = Math.sin(frameCount * 0.45) * 2.5;
+    const tailWag = Math.sin(frameCount * 0.25) * 6;
+
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(-20 + tailWag * 0.4, -28, 7, 16);
+    ctx.fillRect(-22 + tailWag, -38, 8, 12);
+    ctx.fillStyle = orangeMain;
+    ctx.beginPath(); ctx.ellipse(wiggle, -14, 22, 15, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = orangeStripe;
+    ctx.fillRect(-10 + wiggle, -26, 20, 4);
+    ctx.fillRect(-14 + wiggle, -19, 28, 4);
+
+    ctx.fillStyle = orangeMain;
+    ctx.beginPath(); ctx.arc(0, -30, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-14, -36); ctx.lineTo(-18, -50); ctx.lineTo(-5, -42);
+    ctx.moveTo(14, -36);  ctx.lineTo(18, -50);  ctx.lineTo(5, -42);
+    ctx.fill();
+
+    ctx.fillStyle = '#b3d944';
+    ctx.beginPath(); ctx.arc(-6, -34, 4.5, 0, Math.PI * 2); ctx.arc(6, -34, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(-6, -35, 3, 0, Math.PI * 2); ctx.arc(6, -35, 3, 0, Math.PI * 2); ctx.fill();
+
+    drawWhiskers(-8, -28, -1);
+    drawWhiskers(8, -28, 1);
+
+    ctx.fillStyle = whiteFur;
+    ctx.fillRect(-12, -4, 8, 5);
+    ctx.fillRect(4, -4, 8, 5);
+
+  } else if (huntCat.state === 'wall_slide' || huntCat.pose === 'up') {
+    const isSliding = huntCat.state === 'wall_slide';
+    const tailSwing = Math.sin(frameCount * 0.5) * 5;
+
+    ctx.fillStyle = orangeMain; ctx.fillRect(-18, -26, 8, 22); ctx.fillRect(10, -26, 8, 22);
+    ctx.fillStyle = whiteFur; ctx.fillRect(-19, -32, 10, 8); ctx.fillRect(9, -32, 10, 8);
+
+    ctx.fillStyle = orangeMain; ctx.fillRect(-14, -12, 28, 34);
+    ctx.fillStyle = pinkBelly; ctx.fillRect(-8, -4, 16, 20);
+    ctx.fillStyle = orangeStripe;
+    ctx.fillRect(-14, -6, 5, 4); ctx.fillRect(9, -6, 5, 4);
+    ctx.fillRect(-14, 4, 5, 4);  ctx.fillRect(9, 4, 5, 4);
+
+    ctx.fillStyle = orangeMain; ctx.fillRect(-16, 18, 9, 14); ctx.fillRect(7, 18, 9, 14);
+    ctx.fillStyle = whiteFur; ctx.fillRect(-16, 28, 9, 5); ctx.fillRect(7, 28, 9, 5);
+
+    ctx.fillStyle = orangeMain;
+    ctx.beginPath(); ctx.arc(0, -16, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-12, -22); ctx.lineTo(-15, -34); ctx.lineTo(-4, -27);
+    ctx.moveTo(12, -22);  ctx.lineTo(15, -34);  ctx.lineTo(4, -27);
+    ctx.fill();
+
+    if (isSliding) {
+      ctx.fillStyle = '#4a3525'; ctx.fillRect(-8, -20, 6, 2); ctx.fillRect(2, -20, 6, 2);
+    } else {
+      ctx.fillStyle = '#b3d944'; ctx.fillRect(-7, -21, 5, 5); ctx.fillRect(2, -21, 5, 5);
+      ctx.fillStyle = '#111'; ctx.fillRect(-5, -20, 3, 3); ctx.fillRect(4, -20, 3, 3);
+    }
+    ctx.fillStyle = '#e06666'; ctx.fillRect(-2, -16, 4, 3);
+
+    drawWhiskers(-6, -12, -1);
+    drawWhiskers(6, -12, 1);
+
+    ctx.fillStyle = orangeMain;
+    ctx.fillRect(-3 + tailSwing * 0.5, 22, 6, 18);
+    ctx.fillRect(-3 + tailSwing, 36, 7, 10);
+
+  } else {
+    const dir = huntCat.pose === 'left' ? -1 : 1;
+    ctx.scale(dir, 1);
+    ctx.rotate(-0.38);
+
+    ctx.fillStyle = orangeMain; ctx.fillRect(-36, -4, 18, 6);
+    ctx.fillStyle = orangeStripe; ctx.fillRect(-30, -4, 4, 6);
+
+    ctx.fillStyle = orangeMain; ctx.fillRect(-20, -12, 36, 18);
+    ctx.fillStyle = pinkBelly; ctx.fillRect(-10, 2, 20, 4);
+    ctx.fillStyle = orangeStripe;
+    for (let i = -14; i < 10; i += 8) ctx.fillRect(i, -12, 4, 12);
+
+    ctx.fillStyle = orangeMain; ctx.fillRect(-28, 2, 12, 6);
+    ctx.fillStyle = whiteFur; ctx.fillRect(-32, 2, 5, 6);
+
+    ctx.fillStyle = orangeMain; ctx.fillRect(14, -8, 16, 6); ctx.fillRect(12, 0, 16, 6);
+    ctx.fillStyle = whiteFur; ctx.fillRect(26, -9, 7, 7); ctx.fillRect(24, -1, 7, 7);
+
+    ctx.fillStyle = orangeMain; ctx.fillRect(6, -22, 18, 16);
+    ctx.fillRect(8, -28, 5, 6); ctx.fillRect(17, -28, 5, 6);
+    ctx.fillStyle = whiteFur; ctx.fillRect(14, -12, 11, 5);
+    ctx.fillStyle = '#b3d944'; ctx.fillRect(16, -19, 5, 5);
+    ctx.fillStyle = '#111'; ctx.fillRect(18, -18, 3, 3);
+
+    drawWhiskers(18, -8, 1);
+  }
+
+  ctx.restore();
+}
+
+function gameLoop() {
+  update();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (currentStage === 3) {
+    drawStage3();
+  } else {
+    drawBackground();
+    drawPlatforms();
+    drawItemsAndHazards();
+    drawSunkist();
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+showTitleScreen();
+startBGM();
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
